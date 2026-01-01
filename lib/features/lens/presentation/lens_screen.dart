@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../shared/constant/app_colors.dart';
+// import '../../../shared/constant/app_colors.dart';
 import 'package:camera/camera.dart';
 import '../services/camera_service.dart';
+import '../services/storage_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class LensScreen extends StatefulWidget {
   const LensScreen({super.key});
@@ -24,6 +26,20 @@ class _LensScreenState extends State<LensScreen> {
     cameraService.dispose();
     super.dispose();
   }
+
+  Future<void> _pickFromGallery() async {
+  final picker = ImagePicker();
+  final picked = await picker.pickImage(source: ImageSource.gallery);
+
+  if (picked != null) {
+    final bytes = await picked.readAsBytes();
+
+    await StorageService.addToHistory(
+      path: picked.path,
+      bytes: bytes,
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +97,11 @@ class _LensScreenState extends State<LensScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildActionButton(Icons.photo_library, "Galeri"),
+          _buildActionButton(Icons.photo_library, "Galeri", onTap: _pickFromGallery),
           _buildCaptureButton(),
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/favorites'),
-            child: _buildActionButton(Icons.favorite, "Favorit"),
+            child: _buildActionButton(Icons.favorite, "Favorit", onTap: () async {}),
           ),
         ],
       ),
@@ -97,6 +113,14 @@ class _LensScreenState extends State<LensScreen> {
       onTap: () async {
         try {
           final image = await cameraService.capture();
+          final bytes = await image.readAsBytes();
+
+          // simpan ke histori
+          await StorageService.addToHistory(
+            path: image.path,
+            bytes: bytes,
+          );
+
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Foto tersimpan: ${image.path}')),
@@ -114,7 +138,7 @@ class _LensScreenState extends State<LensScreen> {
         child: const CircleAvatar(
           radius: 35,
           backgroundColor: Colors.white,
-          child: Icon(Icons.lens, size: 40, color: Colors.black),
+          child: Icon(Icons.lens, size: 40, color: Colors.white),
         ),
       ),
     );
@@ -127,7 +151,7 @@ class _LensScreenState extends State<LensScreen> {
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label) {
+  Widget _buildActionButton(IconData icon, String label, {required Future<void> Function() onTap}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
