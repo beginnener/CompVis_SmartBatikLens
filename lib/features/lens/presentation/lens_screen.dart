@@ -79,15 +79,81 @@ class _LensScreenState extends State<LensScreen> {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery);
 
-      if (picked != null) {
+      if (picked == null) return;
+
+      if (!mounted) return;
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) =>
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+
+      try {
         final bytes = await picked.readAsBytes();
 
-        await StorageService.addToHistory(path: picked.path, bytes: bytes);
+        // Load image for processing
+        img.Image? galleryImage = img.decodeImage(bytes);
+        List<Recognition> recognitions = [];
+
+        // Run inference if model is loaded
+        if (_isModelLoaded && galleryImage != null) {
+          try {
+            // Store original dimensions
+            final originalWidth = galleryImage.width;
+            final originalHeight = galleryImage.height;
+
+            recognitions = await _tfliteService.detectObjectsFromImage(
+              galleryImage,
+            );
+
+            // Draw bounding boxes on the image
+            if (recognitions.isNotEmpty) {
+              galleryImage = _drawBoundingBoxes(
+                galleryImage,
+                recognitions,
+                originalWidth,
+                originalHeight,
+              );
+            }
+          } catch (e) {
+            print('Detection error: $e');
+          }
+        }
+
+        // Encode annotated image
+        final annotatedBytes = galleryImage != null
+            ? img.encodeJpg(galleryImage)
+            : bytes;
+
+        // Save annotated image to history
+        await StorageService.addToHistory(
+          path: picked.path,
+          bytes: annotatedBytes,
+        );
 
         if (!mounted) return;
+        Navigator.pop(context); // Close loading dialog
+
+        // Show fullscreen preview
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => _ImagePreviewScreen(
+              imageBytes: annotatedBytes,
+              detections: recognitions,
+            ),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading dialog
+
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Photo added to history')));
+        ).showSnackBar(SnackBar(content: Text('Failed to process image: $e')));
       }
     } catch (e) {
       if (!mounted) return;
@@ -321,14 +387,14 @@ class _LensScreenState extends State<LensScreen> {
 
     // Color map for different labels
     final colorMap = {
-      'megamendung': img.ColorRgb8(0, 150, 255), // Blue
+      'megamendung': img.ColorRgb8(147, 51, 234), // Purple
       'parang': img.ColorRgb8(255, 100, 0), // Orange
     };
 
     for (var recognition in recognitions) {
       // Get color for this label (default green if not in map)
-      final boxColor =
-          colorMap[recognition.label.toLowerCase()] ?? img.ColorRgb8(0, 255, 0);
+      final labelKey = recognition.label.toLowerCase().trim();
+      final boxColor = colorMap[labelKey] ?? img.ColorRgb8(0, 255, 0);
 
       // Coordinates from YOLO are in 640x640 letterbox space
       // Convert to original image space
@@ -448,47 +514,6 @@ class _ImagePreviewScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          // Detection info
-          if (detections.isNotEmpty)
-            Positioned(
-              bottom: 40,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Detected:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...detections.map(
-                      (d) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          '${d.label}: ${(d.confidence * 100).toInt()}%',
-                          style: const TextStyle(
-                            color: Colors.greenAccent,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
