@@ -14,7 +14,7 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/logo_smartbatik.png', width: 200),
+              Image.asset('lib/assets/logo_smartbatik.png', width: 200),
               const SizedBox(height: 20),
             ],
           ),

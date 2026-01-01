@@ -114,7 +114,7 @@ class _LensScreenState extends State<LensScreen> {
         child: const CircleAvatar(
           radius: 35,
           backgroundColor: Colors.white,
-          child: Icon(Icons.lens, size: 40, color: Color(0xFF5D4037)),
+          child: Icon(Icons.lens, size: 40, color: Colors.black),
         ),
       ),
     );
