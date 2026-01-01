@@ -128,9 +128,7 @@ class _ImageZoomScreen extends StatelessWidget {
         child: Center(
           child: Hero(
             tag: imagePath,
-            child: kIsWeb
-                ? Image.memory(imageBytes, fit: BoxFit.contain)
-                : Image.file(File(imagePath), fit: BoxFit.contain),
+            child: Image.memory(imageBytes, fit: BoxFit.contain),
           ),
         ),
       ),
