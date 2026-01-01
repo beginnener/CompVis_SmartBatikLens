@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/lens/presentation/lens_screen.dart';
 import '../features/history/history_page.dart';
 import '../features/favorites/favorite_page.dart';
+import '../shared/constant/app_colors.dart';
 
 class SmartBatikApp extends StatelessWidget {
-  const SmartBatikApp({super.key});
+  final List<CameraDescription> cameras;
+
+  const SmartBatikApp({super.key, required this.cameras});
 
   @override
   Widget build(BuildContext context) {
@@ -15,16 +19,26 @@ class SmartBatikApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF795548),
-          primary: const Color(0xFF5D4037),
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
         ),
       ),
       initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/camera': (context) => const LensScreen(),
-        '/history': (context) => const HistoryPage(),
-        '/favorites': (context) => const FavoritesPage(),
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/splash':
+            return MaterialPageRoute(builder: (_) => const SplashScreen());
+          case '/camera':
+            return MaterialPageRoute(
+              builder: (_) => LensScreen(cameras: cameras),
+            );
+          case '/history':
+            return MaterialPageRoute(builder: (_) => const HistoryPage());
+          case '/favorites':
+            return MaterialPageRoute(builder: (_) => const FavoritesPage());
+          default:
+            return MaterialPageRoute(builder: (_) => const SplashScreen());
+        }
       },
     );
   }

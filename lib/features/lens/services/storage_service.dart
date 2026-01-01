@@ -6,81 +6,94 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
-  static const _historyKey = 'photo_history';
+  static const _historyKey = 'history';
   static const _favoritesKey = 'favorites';
 
-  /// Simpan foto ke histori
+  /// Save photo to history
   static Future<void> addToHistory({
     required String path,
     required Uint8List bytes,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final history = prefs.getStringList('history') ?? [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final history = prefs.getStringList(_historyKey) ?? [];
 
-    history.add(jsonEncode({
-      "path": path,
-      "bytes": base64Encode(bytes),
-    }));
+      history.add(jsonEncode({"path": path, "bytes": base64Encode(bytes)}));
 
-    await prefs.setStringList('history', history);
+      await prefs.setStringList(_historyKey, history);
+    } catch (e) {
+      throw Exception('Failed to save to history: $e');
+    }
   }
 
-  // ambil histori foto
+  /// Get photo history
   static Future<List<Map<String, dynamic>>> getHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final history = prefs.getStringList('history') ?? [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final history = prefs.getStringList(_historyKey) ?? [];
 
-    return history.map((e) {
-      final data = jsonDecode(e);
-      return {
-        "path": data["path"],
-        "bytes": base64Decode(data["bytes"]),
-      };
-    }).toList();
+      return history.map((e) {
+        final data = jsonDecode(e);
+        return {"path": data["path"], "bytes": base64Decode(data["bytes"])};
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get history: $e');
+    }
   }
 
-  /// tambahkan ke favorit atau hapus dari favorit
+  /// Add to favorites or remove from favorites
   static Future<void> toggleFavorite(String path) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_favoritesKey) ?? [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_favoritesKey) ?? [];
 
-    list.contains(path) ? list.remove(path) : list.add(path);
+      list.contains(path) ? list.remove(path) : list.add(path);
 
-    await prefs.setStringList(_favoritesKey, list);
+      await prefs.setStringList(_favoritesKey, list);
+    } catch (e) {
+      throw Exception('Failed to toggle favorite: $e');
+    }
   }
 
- static Future<List<Map<String, dynamic>>> getFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList("favorites") ?? [];
+  /// Get all favorited photos
+  static Future<List<Map<String, dynamic>>> getFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_favoritesKey) ?? [];
 
-    return Future.wait(list.map((path) async {
-      Uint8List bytes;
+      return Future.wait(
+        list.map((path) async {
+          Uint8List bytes;
 
-      if (kIsWeb) {
-        bytes = await _readBytesWeb(path);
-      } else {
-        bytes = await File(path).readAsBytes();
-      }
+          if (kIsWeb) {
+            bytes = await _readBytesWeb(path);
+          } else {
+            bytes = await File(path).readAsBytes();
+          }
 
-      return {
-        "path": path,
-        "bytes": bytes,
-      };
-    }));
+          return {"path": path, "bytes": bytes};
+        }),
+      );
+    } catch (e) {
+      throw Exception('Failed to get favorites: $e');
+    }
   }
 
-  // cek apakah foto ada di favorit
+  /// Check if photo is favorited
   static Future<bool> isFavorite(String path) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_favoritesKey) ?? [];
-    return list.contains(path);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_favoritesKey) ?? [];
+      return list.contains(path);
+    } catch (e) {
+      return false;
+    }
   }
 
-  // Membaca bytes di Web (misalnya dari blob / object URL)
+  /// Read bytes on Web platform (e.g., from blob/object URL)
   static Future<Uint8List> _readBytesWeb(String path) async {
     final uri = Uri.parse(path);
     final response = await http.get(uri);
     return response.bodyBytes;
   }
 }
-

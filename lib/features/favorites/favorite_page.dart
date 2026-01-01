@@ -10,10 +10,23 @@ class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Favorit")),
+      appBar: AppBar(title: const Text("Favorites")),
       body: FutureBuilder(
         future: StorageService.getFavorites(),
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading favorites: ${snapshot.error}',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -21,7 +34,7 @@ class FavoritesPage extends StatelessWidget {
           final items = snapshot.data!;
 
           if (items.isEmpty) {
-            return const Center(child: Text("Belum ada favorit"));
+            return const Center(child: Text("No favorites yet"));
           }
 
           return ListView.builder(

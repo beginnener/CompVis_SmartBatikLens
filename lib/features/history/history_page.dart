@@ -23,10 +23,23 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Histori")),
+      appBar: AppBar(title: const Text("History")),
       body: FutureBuilder(
         future: _history,
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading history: ${snapshot.error}',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -34,7 +47,7 @@ class _HistoryPageState extends State<HistoryPage> {
           final items = snapshot.data!;
 
           if (items.isEmpty) {
-            return const Center(child: Text("Belum ada histori"));
+            return const Center(child: Text("No history yet"));
           }
 
           return GridView.builder(
@@ -50,14 +63,33 @@ class _HistoryPageState extends State<HistoryPage> {
               final bytes = items[i]["bytes"] as Uint8List;
 
               return GestureDetector(
-                onLongPress: () async {
-                  await StorageService.toggleFavorite(path);
-                  setState(() {});
+                onTap: () {
+                  // Zoom in on tap
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          _ImageZoomScreen(imagePath: path, imageBytes: bytes),
+                    ),
+                  );
                 },
-                child: Hero(
-                  tag: path,
-                  child: buildImage(path, bytes),
-                ),
+                onLongPress: () async {
+                  try {
+                    await StorageService.toggleFavorite(path);
+                    setState(() {
+                      _history = StorageService.getHistory();
+                    });
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Favorite toggled')),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                },
+                child: Hero(tag: path, child: buildImage(path, bytes)),
               );
             },
           );
@@ -72,5 +104,36 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     return Image.file(File(path), fit: BoxFit.cover);
+  }
+}
+
+// Fullscreen zoom screen for history images
+class _ImageZoomScreen extends StatelessWidget {
+  final String imagePath;
+  final Uint8List imageBytes;
+
+  const _ImageZoomScreen({required this.imagePath, required this.imageBytes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: Center(
+          child: Hero(
+            tag: imagePath,
+            child: kIsWeb
+                ? Image.memory(imageBytes, fit: BoxFit.contain)
+                : Image.file(File(imagePath), fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
   }
 }

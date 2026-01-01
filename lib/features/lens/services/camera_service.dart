@@ -1,21 +1,21 @@
 import 'package:camera/camera.dart';
-import '../../../main.dart';
 
 class CameraService {
   late CameraController controller;
   late Future<void> initializeFuture;
 
-  CameraService() {
-    controller = CameraController(
-      cameras[0],
-      ResolutionPreset.high,
-    );
+  CameraService(CameraDescription camera) {
+    controller = CameraController(camera, ResolutionPreset.high);
     initializeFuture = controller.initialize();
   }
 
   Future<XFile> capture() async {
-    await initializeFuture;
-    return await controller.takePicture();
+    try {
+      await initializeFuture;
+      return await controller.takePicture();
+    } catch (e) {
+      throw Exception('Failed to capture photo: $e');
+    }
   }
 
   void dispose() {
