@@ -97,16 +97,20 @@ class _LensScreenState extends State<LensScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildActionButton(Icons.photo_library, "Galeri", onTap: _pickFromGallery),
+          GestureDetector(
+            onTap: _pickFromGallery,
+            child: _buildActionButton(Icons.photo_library, "Galeri"),
+          ),
           _buildCaptureButton(),
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, '/favorites'),
-            child: _buildActionButton(Icons.favorite, "Favorit", onTap: () async {}),
+            child: _buildActionButton(Icons.favorite, "Favorit"),
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildCaptureButton() {
     return GestureDetector(
@@ -151,18 +155,20 @@ class _LensScreenState extends State<LensScreen> {
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, {required Future<void> Function() onTap}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CircleAvatar(
-          radius: 25,
-          backgroundColor: Colors.black45,
-          child: Icon(icon, color: Colors.white),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+  Widget _buildActionButton(IconData icon, String label) { 
+    return Column( 
+      mainAxisSize: MainAxisSize.min, 
+      children: [ 
+        CircleAvatar( 
+          radius: 25, 
+          backgroundColor: Colors.black45, 
+          child: Icon(icon, color: Colors.white), 
+        ), 
+        const SizedBox(height: 8), 
+        Text(
+          label, 
+          style: const TextStyle(color: Colors.white, fontSize: 12)), 
       ],
-    );
+    ); 
   }
 }
