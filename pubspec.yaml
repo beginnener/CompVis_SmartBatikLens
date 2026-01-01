@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  camera: ^0.11.0 # Untuk akses kamera real-time
+  image_picker: ^1.0.0 # Untuk mengambil foto dari galeri
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
